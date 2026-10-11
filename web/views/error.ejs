@@ -1,0 +1,7 @@
+<%- include('layout') %>
+<div class="card" style="max-width: 600px; margin: 3rem auto; text-align: center;">
+  <h1 style="color: var(--danger); font-size: 2.5rem; margin-bottom: 1rem;"><%= typeof title !== 'undefined' ? title : 'Đã xảy ra lỗi' %></h1>
+  <p style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 1.5rem;"><%= typeof message !== 'undefined' ? message : 'Có lỗi xảy ra trong quá trình xử lý.' %></p>
+  <a href="/" class="btn btn-primary">Quay về Trang chủ</a>
+</div>
+<%- include('footer') %>

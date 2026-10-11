@@ -1,0 +1,51 @@
+<div class="admin-dashboard-shell">
+  <!-- Header Trung tâm điều hành -->
+  <div class="admin-top-bar">
+    <div>
+      <h1 class="admin-main-heading">Dashboard Quản Trị Hệ Thống</h1>
+      <p class="admin-sub-heading">Trung tâm giám sát báo cáo doanh thu, quản trị thực đơn và tài khoản nhân sự</p>
+    </div>
+    <div class="admin-clock-badge">
+      <span>🕒</span>
+      <span id="admin-live-clock">--:--:-- | --/--/----</span>
+    </div>
+  </div>
+
+  <!-- Thanh 5 Tab Điều Hướng Quản Trị (Giống hình mẫu) -->
+  <nav class="admin-tabs-nav" aria-label="Điều hướng Quản trị hệ thống">
+    <a href="/manager/dashboard" class="admin-tab-link <%= (typeof activeTab !== 'undefined' && activeTab === 'kpi') ? 'active' : '' %>">
+      <span>📈</span> Báo Cáo Doanh Thu &amp; KPIs
+    </a>
+    <a href="/manager/menu" class="admin-tab-link <%= (typeof activeTab !== 'undefined' && activeTab === 'menu') ? 'active' : '' %>">
+      <span>📋</span> Quản Lý Thực Đơn
+    </a>
+    <a href="/manager/tables" class="admin-tab-link <%= (typeof activeTab !== 'undefined' && activeTab === 'tables') ? 'active' : '' %>">
+      <span>🪑</span> Quản Lý Bàn Ăn
+    </a>
+    <a href="/manager/staff" class="admin-tab-link <%= (typeof activeTab !== 'undefined' && activeTab === 'staff') ? 'active' : '' %>">
+      <span>👥</span> Quản Trị Tài Khoản
+    </a>
+    <a href="/manager/reservations" class="admin-tab-link <%= (typeof activeTab !== 'undefined' && activeTab === 'reservations') ? 'active' : '' %>">
+      <span>📅</span> Sổ Đặt Bàn
+    </a>
+  </nav>
+</div>
+
+<script>
+(function() {
+  const clockEl = document.getElementById('admin-live-clock');
+  if (!clockEl) return;
+  function tick() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mo = String(now.getMonth() + 1).padStart(2, '0');
+    const yyyy = now.getFullYear();
+    clockEl.textContent = hh + ':' + mm + ':' + ss + ' | ' + dd + '/' + mo + '/' + yyyy;
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>

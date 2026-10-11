@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title : 'Nhà Hàng Á Đông Sakura' %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header>
+    <div class="navbar">
+      <a href="<%= user && user.role === 'manager' ? '/manager/dashboard' : (user && user.role === 'staff' ? '/orders' : '/') %>" class="logo">🌸 <span>NHÀ HÀNG Á ĐÔNG</span> • SAKURA</a>
+      <ul class="nav-links">
+        <% if (!user || user.role === 'customer') { %>
+          <li><a href="/">📋 Thực đơn &amp; Đặt món</a></li>
+          <li><a href="/reservations/new">🪑 Đặt bàn online</a></li>
+        <% } %>
+        <% if (user) { %>
+          <% if (user.role === 'customer') { %>
+            <li><a href="/reservations">📅 Lịch đặt của tôi</a></li>
+            <li><a href="/orders">📦 Đơn món của tôi</a></li>
+          <% } %>
+          <% if (user.role === 'staff') { %>
+            <li><a href="/orders">👨‍🍳 Điều phối Bếp (KDS)</a></li>
+            <li><a href="/orders#table-orders-section">🪑 Sơ đồ bàn &amp; Thu ngân</a></li>
+            <li><a href="/reservations">📅 Sổ Đặt bàn</a></li>
+          <% } %>
+          <% if (user.role === 'manager') { %>
+            <li><a href="/manager/dashboard" style="color: var(--primary); background: var(--primary-soft); font-weight: 700;">👑 Dashboard Quản Trị</a></li>
+            <li><a href="/orders">👨‍🍳 KDS Bếp</a></li>
+            <li><a href="/manager/menu">📋 Quản lý Thực đơn</a></li>
+            <li><a href="/manager/tables">🪑 Quản lý Bàn ăn</a></li>
+            <li><a href="/manager/staff">👥 Quản trị Nhân sự</a></li>
+            <li><a href="/manager/reservations">📅 Sổ Đặt bàn</a></li>
+          <% } %>
+          <li>
+            <span class="badge-role role-<%= user.role %>"><%= user.role.toUpperCase() %></span>
+            <strong style="margin-left: 0.3rem;"><%= user.full_name %></strong>
+          </li>
+          <li>
+            <form action="/logout" method="POST" style="display:inline;">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button type="submit" class="btn btn-secondary btn-sm">Đăng xuất</button>
+            </form>
+          </li>
+        <% } else { %>
+          <li><a href="/login">Đăng nhập</a></li>
+          <li><a href="/register" class="btn btn-primary btn-sm">Đăng ký</a></li>
+        <% } %>
+      </ul>
+    </div>
+  </header>
+
+  <main class="container">

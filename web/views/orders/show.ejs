@@ -1,0 +1,141 @@
+<%- include('../layout') %>
+
+<%
+  const isStaffOrManager = user && (user.role === 'staff' || user.role === 'manager');
+  const totalQty = items.reduce((sum, it) => sum + Number(it.quantity), 0);
+%>
+
+<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+  <div>
+    <h1 style="font-size: 1.6rem; font-weight: 800;">🧾 Đơn hàng #<%= order.order_code %></h1>
+    <p style="color: var(--text-muted); margin-top: 0.25rem;">
+      🪑 <strong><%= order.table_code %></strong> • Khách tại bàn: <strong><%= order.staff_name %></strong> • Lúc <%= new Date(order.created_at).toLocaleString('vi-VN') %>
+    </p>
+  </div>
+  <div style="display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap;">
+    <% if (isStaffOrManager) { %>
+      <a href="/orders" class="btn btn-secondary">← Về Bảng Điều Phối Bếp</a>
+      <% if (order.status === 'served') { %>
+        <a href="/orders/<%= order.id %>/checkout" class="btn btn-success">💳 Tiến hành Thanh toán</a>
+      <% } %>
+    <% } else { %>
+      <% if (order.status !== 'paid' && order.status !== 'cancelled') { %>
+        <a href="/?table=<%= order.table_id %>" class="btn btn-primary">📋 + Gọi thêm món (Gộp vào <%= order.table_code %>)</a>
+      <% } else { %>
+        <a href="/" class="btn btn-primary">📋 Quay về Thực đơn gọi món</a>
+      <% } %>
+    <% } %>
+    <span class="status-badge status-<%= order.status %>" style="font-size: 0.95rem; padding: 0.45rem 1rem;">
+      <%= order.status === 'pending' ? '⏳ Chờ chế biến' : (order.status === 'preparing' ? '👨‍🍳 Đang chế biến' : (order.status === 'served' ? '🍽️ Đã phục vụ' : (order.status === 'paid' ? '✅ Đã thanh toán' : '❌ Đã hủy'))) %>
+    </span>
+  </div>
+</div>
+
+<% if (error) { %><div class="alert alert-error">⚠️ <%= error %></div><% } %>
+<% if (success) { %><div class="alert alert-success"><%= success %></div><% } %>
+
+<% if (order.note && order.note.trim()) { %>
+  <div class="alert" style="background: #fff7ed; border: 1px solid #fdba74; color: #9a3412;">
+    📝 <strong>Ghi chú chung cho Bếp:</strong> <%= order.note %>
+  </div>
+<% } %>
+
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">📋 Bảng tính giá tiền, số lượng &amp; ghi chú khẩu vị</h3>
+    <span class="status-badge status-confirmed"><%= items.length %> dòng món • <%= totalQty %> phần</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th style="width: 60px;">STT</th>
+          <th>Tên món ăn</th>
+          <th>Ghi chú khẩu vị</th>
+          <th>Đơn giá</th>
+          <th>Số lượng</th>
+          <th style="text-align: right;">Thành tiền</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% items.forEach((it, idx) => { %>
+          <tr>
+            <td><strong>#<%= idx + 1 %></strong></td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <img src="<%= it.image_path %>" style="width: 44px; height: 36px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color);">
+                <strong><%= it.item_name %></strong>
+              </div>
+            </td>
+            <td>
+              <% if (it.note && it.note.trim()) { %>
+                <span style="display: inline-block; background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; padding: 2px 8px; border-radius: 999px; font-size: 0.78rem; font-weight: 700;">
+                  🌶️ <%= it.note %>
+                </span>
+              <% } else { %>
+                <span style="color: var(--text-muted); font-size: 0.82rem;">Mặc định</span>
+              <% } %>
+            </td>
+            <td><%= Number(it.unit_price).toLocaleString('vi-VN') %> ₫</td>
+            <td><span class="status-badge status-pending">x<%= it.quantity %> phần</span></td>
+            <td style="text-align: right;"><strong><%= Number(it.unit_price * it.quantity).toLocaleString('vi-VN') %> ₫</strong></td>
+          </tr>
+        <% }); %>
+      </tbody>
+      <tfoot>
+        <tr style="background: var(--bg-warm);">
+          <td colspan="4" style="text-align: right; font-weight: 700; font-size: 1rem;">Tổng số lượng:</td>
+          <td><strong><%= totalQty %> phần</strong></td>
+          <td style="text-align: right;">
+            <span style="color: var(--text-muted); font-size: 0.9rem; margin-right: 0.35rem;">Tổng thanh toán:</span>
+            <strong style="color: var(--primary); font-size: 1.35rem;"><%= Number(order.total_amount).toLocaleString('vi-VN') %> ₫</strong>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<% if (isStaffOrManager) { %>
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">👨‍🍳 Cập nhật tiến độ phục vụ &amp; Thu ngân</h3>
+  </div>
+  <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+    <% if (order.status === 'pending') { %>
+      <form action="/orders/<%= order.id %>/status" method="POST">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="next_status" value="preparing">
+        <button type="submit" class="btn btn-warning">🔥 Bắt đầu chế biến (→ Đang nấu)</button>
+      </form>
+    <% } %>
+    <% if (order.status === 'preparing') { %>
+      <form action="/orders/<%= order.id %>/status" method="POST">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="next_status" value="served">
+        <button type="submit" class="btn btn-primary">🍽️ Đã lên món đủ (→ Đã phục vụ)</button>
+      </form>
+    <% } %>
+    <% if (order.status === 'served') { %>
+      <a href="/orders/<%= order.id %>/checkout" class="btn btn-success">💳 Tiến hành thanh toán &amp; Mã QR (→ Thu ngân)</a>
+    <% } %>
+    <% if (order.status !== 'paid' && order.status !== 'cancelled') { %>
+      <form action="/orders/<%= order.id %>/status" method="POST" onsubmit="return confirm('Chắc chắn muốn hủy đơn hàng này?');">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="next_status" value="cancelled">
+        <button type="submit" class="btn btn-danger">✕ Hủy đơn</button>
+      </form>
+    <% } %>
+    <% if (order.status === 'paid') { %>
+      <a href="/orders/<%= order.id %>/invoice" class="btn btn-info">🖨️ Xem &amp; In hóa đơn</a>
+    <% } %>
+    <a href="/orders" class="btn btn-secondary">← Về Bảng Điều Phối Bếp</a>
+  </div>
+</div>
+<% } else if (order.status === 'paid') { %>
+<div style="text-align: right; margin-top: 1rem;">
+  <a href="/orders/<%= order.id %>/invoice" class="btn btn-info">🖨️ Xem hóa đơn thanh toán</a>
+</div>
+<% } %>
+
+<%- include('../footer') %>

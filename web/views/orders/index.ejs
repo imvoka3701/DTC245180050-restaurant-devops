@@ -1,0 +1,280 @@
+<%- include('../layout') %>
+
+<%
+  const pendingOrders = orders.filter(o => o.status === 'pending');
+  const preparingOrders = orders.filter(o => o.status === 'preparing');
+  const servedOrders = orders.filter(o => o.status === 'served');
+  const isStaffOrManager = user && (user.role === 'staff' || user.role === 'manager');
+%>
+
+<% if (isStaffOrManager) { %>
+<!-- TIÊU ĐỀ DÀNH CHO NHÂN VIÊN & QUẢN LÝ -->
+<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.35rem;">
+  <div>
+    <h1 style="font-size: 1.65rem; font-weight: 800; color: var(--text-main);">
+      👨‍🍳 Điều Phối Bếp (KDS) &amp; Quản Lý Đơn Gọi Món
+    </h1>
+    <p style="color: var(--text-muted); font-size: 0.9rem;">
+      Theo dõi trạng thái chế biến món ăn, ghi chú khẩu vị của khách và thu ngân thanh toán theo thời gian thực
+    </p>
+  </div>
+  <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
+    <button type="button" id="btn-view-kanban" class="btn btn-primary btn-sm">👨‍🍳 Bảng Kanban Bếp (3 Cột)</button>
+    <button type="button" id="btn-view-table" class="btn btn-secondary btn-sm">📋 Danh Sách &amp; Thu Ngân (<%= orders.length %>)</button>
+    <a href="/orders" class="btn btn-secondary btn-sm" title="Tải lại danh sách đơn mới">🔄 Làm mới</a>
+  </div>
+</div>
+<% } else { %>
+<!-- TIÊU ĐỀ DÀNH CHO KHÁCH HÀNG -->
+<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.35rem;">
+  <div>
+    <h1 style="font-size: 1.65rem; font-weight: 800; color: var(--text-main);">
+      📦 Đơn Món Của Tôi
+    </h1>
+    <p style="color: var(--text-muted); font-size: 0.9rem;">
+      Theo dõi tiến độ nhà bếp tiếp nhận, chế biến món ăn và hóa đơn tại bàn của bạn
+    </p>
+  </div>
+  <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
+    <a href="/" class="btn btn-primary btn-sm">📋 + Đặt Món Mới Tại Bàn</a>
+  </div>
+</div>
+<% } %>
+
+<% if (error) { %><div class="alert alert-error">⚠️ <%= error %></div><% } %>
+<% if (success) { %><div class="alert alert-success"><%= success %></div><% } %>
+
+<% if (isStaffOrManager) { %>
+<!-- CHẾ ĐỘ 1: BẢNG ĐIỀU PHỐI BẾP KANBAN 3 CỘT (CHỈ DÀNH CHO NHÂN VIÊN & QUẢN LÝ) -->
+<div id="kanban-board-section" class="kds-kanban-grid">
+  <!-- CỘT 1: CHỜ CHẾ BIẾN -->
+  <div class="kds-column kds-col-pending">
+    <div class="kds-col-header">
+      <span>⏳ Chờ Chế Biến</span>
+      <span class="kds-count-badge"><%= pendingOrders.length %> đơn</span>
+    </div>
+    <div class="kds-col-body">
+      <% if (pendingOrders.length === 0) { %>
+        <div class="kds-empty-state">Hiện không có đơn nào chờ chế biến</div>
+      <% } else { %>
+        <% pendingOrders.forEach(o => { %>
+          <div class="kds-ticket-card">
+            <div class="kds-ticket-top">
+              <span class="kds-table-tag">🪑 <%= o.table_code %></span>
+              <span class="kds-time-tag">🕒 <%= new Date(o.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) %></span>
+            </div>
+            <div class="kds-order-code">#<%= o.order_code %> • <%= o.staff_name %></div>
+            <% if (o.note && o.note.trim()) { %>
+              <div class="kds-order-note">📝 <strong>Ghi chú đơn:</strong> <%= o.note %></div>
+            <% } %>
+            <ul class="kds-item-list">
+              <% (o.items || []).forEach(it => { %>
+                <li>
+                  <div style="display: flex; justify-content: space-between; font-weight: 700;">
+                    <span><%= it.item_name %></span>
+                    <span style="color: var(--primary);">x<%= it.quantity %></span>
+                  </div>
+                  <% if (it.note && it.note.trim()) { %>
+                    <div class="kds-item-note">🌶️ <%= it.note %></div>
+                  <% } %>
+                </li>
+              <% }); %>
+            </ul>
+            <div class="kds-ticket-actions">
+              <form action="/orders/<%= o.id %>/status" method="POST" style="flex: 1;">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="next_status" value="preparing">
+                <input type="hidden" name="return_to" value="kanban">
+                <button type="submit" class="btn btn-warning btn-sm" style="width: 100%;">🔥 Bắt đầu nấu</button>
+              </form>
+              <a href="/orders/<%= o.id %>" class="btn btn-secondary btn-sm">Chi tiết</a>
+            </div>
+          </div>
+        <% }); %>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- CỘT 2: ĐANG CHẾ BIẾN -->
+  <div class="kds-column kds-col-preparing">
+    <div class="kds-col-header">
+      <span>🔥 Đang Chế Biến</span>
+      <span class="kds-count-badge"><%= preparingOrders.length %> đơn</span>
+    </div>
+    <div class="kds-col-body">
+      <% if (preparingOrders.length === 0) { %>
+        <div class="kds-empty-state">Bếp hiện không có đơn đang nấu</div>
+      <% } else { %>
+        <% preparingOrders.forEach(o => { %>
+          <div class="kds-ticket-card">
+            <div class="kds-ticket-top">
+              <span class="kds-table-tag">🪑 <%= o.table_code %></span>
+              <span class="kds-time-tag">🕒 <%= new Date(o.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) %></span>
+            </div>
+            <div class="kds-order-code">#<%= o.order_code %> • <%= o.staff_name %></div>
+            <% if (o.note && o.note.trim()) { %>
+              <div class="kds-order-note">📝 <strong>Ghi chú đơn:</strong> <%= o.note %></div>
+            <% } %>
+            <ul class="kds-item-list">
+              <% (o.items || []).forEach(it => { %>
+                <li>
+                  <div style="display: flex; justify-content: space-between; font-weight: 700;">
+                    <span><%= it.item_name %></span>
+                    <span style="color: #0284c7;">x<%= it.quantity %></span>
+                  </div>
+                  <% if (it.note && it.note.trim()) { %>
+                    <div class="kds-item-note">🌶️ <%= it.note %></div>
+                  <% } %>
+                </li>
+              <% }); %>
+            </ul>
+            <div class="kds-ticket-actions">
+              <form action="/orders/<%= o.id %>/status" method="POST" style="flex: 1;">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="next_status" value="served">
+                <input type="hidden" name="return_to" value="kanban">
+                <button type="submit" class="btn btn-primary btn-sm" style="width: 100%;">🍽️ Đã lên món đủ</button>
+              </form>
+              <a href="/orders/<%= o.id %>" class="btn btn-secondary btn-sm">Chi tiết</a>
+            </div>
+          </div>
+        <% }); %>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- CỘT 3: ĐÃ PHỤC VỤ - CHỜ THU NGÂN -->
+  <div class="kds-column kds-col-served">
+    <div class="kds-col-header">
+      <span>🍽️ Đã Phục Vụ (Chờ Thu Ngân)</span>
+      <span class="kds-count-badge"><%= servedOrders.length %> bàn</span>
+    </div>
+    <div class="kds-col-body">
+      <% if (servedOrders.length === 0) { %>
+        <div class="kds-empty-state">Chưa có bàn nào chờ thanh toán</div>
+      <% } else { %>
+        <% servedOrders.forEach(o => { %>
+          <div class="kds-ticket-card">
+            <div class="kds-ticket-top">
+              <span class="kds-table-tag">🪑 <%= o.table_code %></span>
+              <strong style="color: var(--primary); font-size: 0.95rem;"><%= Number(o.total_amount).toLocaleString('vi-VN') %> ₫</strong>
+            </div>
+            <div class="kds-order-code">#<%= o.order_code %> • <%= (o.items || []).length %> loại món</div>
+            <ul class="kds-item-list">
+              <% (o.items || []).forEach(it => { %>
+                <li>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span><%= it.item_name %></span>
+                    <strong>x<%= it.quantity %></strong>
+                  </div>
+                </li>
+              <% }); %>
+            </ul>
+            <div class="kds-ticket-actions">
+              <a href="/orders/<%= o.id %>/checkout" class="btn btn-success btn-sm" style="flex: 1; text-align: center;">💳 Thu Ngân &amp; QR</a>
+              <a href="/orders/<%= o.id %>" class="btn btn-secondary btn-sm">Chi tiết</a>
+            </div>
+          </div>
+        <% }); %>
+      <% } %>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<!-- BẢNG DANH SÁCH ĐƠN HÀNG (HIỂN THỊ PHÙ HỢP THEO ROLE) -->
+<div class="card" id="table-orders-section" style="<%= isStaffOrManager ? 'margin-top: 1.5rem;' : '' %>">
+  <div class="card-header">
+    <h3 class="card-title">
+      <%= isStaffOrManager ? `📋 Danh Sách Toàn Bộ Đơn & Đối Soát Thu Ngân (${orders.length} đơn)` : `📋 Lịch Sử Đơn Món Của Bạn (${orders.length} đơn)` %>
+    </h3>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Mã đơn</th>
+          <th>Bàn</th>
+          <th>Các món &amp; Ghi chú khẩu vị</th>
+          <th>Thời gian</th>
+          <th>Tổng tiền</th>
+          <th>Trạng thái &amp; Tiến độ</th>
+          <th style="text-align: right;">Hành động</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (orders.length === 0) { %>
+          <tr><td colspan="7" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+            <%= isStaffOrManager ? 'Hiện chưa có đơn gọi món nào trong hệ thống.' : 'Bạn chưa có đơn món nào. Hãy ghé Thực đơn để chọn món và gọi món tại bàn nhé!' %>
+          </td></tr>
+        <% } else { %>
+          <% orders.forEach(o => { %>
+            <tr>
+              <td><strong>#<%= o.order_code %></strong></td>
+              <td><span class="status-badge status-preparing">🪑 <%= o.table_code %></span></td>
+              <td style="max-width: 320px;">
+                <div style="font-size: 0.85rem;">
+                  <% (o.items || []).forEach(it => { %>
+                    <div>• <strong><%= it.item_name %></strong> (x<%= it.quantity %>) <% if (it.note) { %><span style="color: #ea580c; font-size: 0.78rem;">[🌶️ <%= it.note %>]</span><% } %></div>
+                  <% }); %>
+                </div>
+                <% if (o.note) { %>
+                  <div style="font-size: 0.78rem; color: #b45309; margin-top: 3px;">📝 <%= o.note %></div>
+                <% } %>
+              </td>
+              <td><%= new Date(o.created_at).toLocaleString('vi-VN') %></td>
+              <td><strong style="color: var(--primary);"><%= Number(o.total_amount).toLocaleString('vi-VN') %> ₫</strong></td>
+              <td>
+                <span class="status-badge status-<%= o.status %>">
+                  <%= o.status === 'pending' ? '⏳ Chờ chế biến' : (o.status === 'preparing' ? '🔥 Đang chế biến' : (o.status === 'served' ? '🍽️ Đã phục vụ' : (o.status === 'paid' ? '✅ Đã thanh toán' : '❌ Đã hủy'))) %>
+                </span>
+              </td>
+              <td style="text-align: right; white-space: nowrap;">
+                <a href="/orders/<%= o.id %>" class="btn btn-secondary btn-sm">Chi tiết</a>
+                <% if (isStaffOrManager) { %>
+                  <% if (o.status === 'served') { %>
+                    <a href="/orders/<%= o.id %>/checkout" class="btn btn-success btn-sm">💳 Thu ngân</a>
+                  <% } else if (o.status === 'paid') { %>
+                    <a href="/orders/<%= o.id %>/invoice" class="btn btn-info btn-sm">🖨️ Hóa đơn</a>
+                  <% } %>
+                <% } else { %>
+                  <% if (o.status !== 'paid' && o.status !== 'cancelled') { %>
+                    <a href="/?table=<%= o.table_id %>" class="btn btn-primary btn-sm">📋 + Gọi thêm món</a>
+                  <% } else if (o.status === 'paid') { %>
+                    <a href="/orders/<%= o.id %>/invoice" class="btn btn-info btn-sm">🖨️ Hóa đơn</a>
+                  <% } %>
+                <% } %>
+              </td>
+            </tr>
+          <% }); %>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<% if (isStaffOrManager) { %>
+<script>
+(function() {
+  const btnKanban = document.getElementById('btn-view-kanban');
+  const btnTable = document.getElementById('btn-view-table');
+  const kanbanSec = document.getElementById('kanban-board-section');
+  const tableSec = document.getElementById('table-orders-section');
+
+  if (btnKanban && btnTable) {
+    btnKanban.addEventListener('click', () => {
+      kanbanSec.style.display = 'grid';
+      btnKanban.className = 'btn btn-primary btn-sm';
+      btnTable.className = 'btn btn-secondary btn-sm';
+    });
+    btnTable.addEventListener('click', () => {
+      tableSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      btnTable.className = 'btn btn-primary btn-sm';
+      btnKanban.className = 'btn btn-secondary btn-sm';
+    });
+  }
+})();
+</script>
+<% } %>
+
+<%- include('../footer') %>

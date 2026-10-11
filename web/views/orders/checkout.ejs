@@ -1,0 +1,228 @@
+<%- include('../layout') %>
+
+<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+  <div>
+    <h1 style="font-size: 1.65rem; font-weight: 800;">💳 Thu Ngân &amp; Thanh Toán Hóa Đơn</h1>
+    <p style="color: var(--text-muted);">
+      Đơn hàng <strong>#<%= order.order_code %></strong> • Phục vụ tại <strong>🪑 <%= order.table_code %></strong>
+    </p>
+  </div>
+  <a href="/orders/<%= order.id %>" class="btn btn-secondary btn-sm">← Quay lại Chi tiết đơn</a>
+</div>
+
+<% if (error) { %><div class="alert alert-error">⚠️ <%= error %></div><% } %>
+
+<div class="grid grid-2" style="align-items: start;">
+  <!-- Cột trái: Bảng đối soát món ăn trước thanh toán -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">🧾 Chi Tiết Các Món Trong Hóa Đơn</h3>
+      <span class="status-badge status-served">🪑 <%= order.table_code %></span>
+    </div>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Tên món</th>
+            <th style="text-align: center;">SL</th>
+            <th style="text-align: right;">Đơn giá</th>
+            <th style="text-align: right;">Thành tiền</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% (typeof items !== 'undefined' ? items : []).forEach(it => { %>
+            <tr>
+              <td>
+                <strong><%= it.item_name %></strong>
+                <% if (it.note) { %>
+                  <div style="font-size: 0.75rem; color: #ea580c;">🌶️ <%= it.note %></div>
+                <% } %>
+              </td>
+              <td style="text-align: center;">x<%= it.quantity %></td>
+              <td style="text-align: right;"><%= Number(it.unit_price).toLocaleString('vi-VN') %> ₫</td>
+              <td style="text-align: right;"><strong><%= Number(it.unit_price * it.quantity).toLocaleString('vi-VN') %> ₫</strong></td>
+            </tr>
+          <% }); %>
+        </tbody>
+        <tfoot>
+          <tr style="background: var(--bg-warm);">
+            <td colspan="3" style="text-align: right; font-weight: 800; font-size: 1.05rem;">TỔNG CỘNG PHẢI THU:</td>
+            <td style="text-align: right;">
+              <strong style="color: var(--primary); font-size: 1.35rem;"><%= Number(order.total_amount).toLocaleString('vi-VN') %> ₫</strong>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- Cột phải: Xử lý thanh toán & Mã QR động -->
+  <div class="card" style="border-top: 4px solid var(--primary);">
+    <div style="text-align: center; margin-bottom: 1.25rem; padding: 1rem; background: var(--bg-warm); border: 1px solid #fecdd3; border-radius: 12px;">
+      <div style="color: var(--text-secondary); font-size: 0.88rem; font-weight: 700;">TỔNG SỐ TIỀN THANH TOÁN (<%= order.table_code %>)</div>
+      <div style="color: var(--primary); font-size: 2.1rem; font-weight: 800;"><%= Number(order.total_amount).toLocaleString('vi-VN') %> ₫</div>
+    </div>
+
+    <form action="/orders/<%= order.id %>/checkout" method="POST" id="checkout-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <div class="form-group">
+        <label class="form-label">Chọn phương thức thanh toán</label>
+        <select name="payment_method" id="payMethod" class="form-control" style="font-weight: 700;" required>
+          <option value="cash">💵 Tiền mặt tại quầy (Cash)</option>
+          <option value="qr">📱 Quét mã QR Ngân hàng động (VietQR)</option>
+          <option value="card">💳 Thẻ ngân hàng / POS (Card)</option>
+        </select>
+      </div>
+
+      <!-- Khung hiển thị Mã QR Động khi chọn phương thức QR -->
+      <div id="qr-payment-box" style="display: none; text-align: center; background: #ffffff; border: 2px solid #0284c7; border-radius: 14px; padding: 1.15rem; margin-bottom: 1.15rem; box-shadow: 0 4px 16px rgba(2, 132, 199, 0.1);">
+        <div style="font-weight: 800; color: #0369a1; font-size: 0.95rem; margin-bottom: 0.25rem;">🌸 SAKURA BANK • VIETQR PAY</div>
+        <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.65rem;">Quét mã QR bằng ứng dụng Ngân hàng / Ví điện tử</div>
+        <div id="dynamic-qr-svg" style="display: inline-block; padding: 10px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 0.65rem;"></div>
+        <div style="background: #f0f9ff; border-radius: 8px; padding: 0.6rem 0.85rem; text-align: left; font-size: 0.82rem; line-height: 1.55;">
+          <div>🏦 <strong>Chủ TK:</strong> NHÀ HÀNG Á ĐÔNG SAKURA</div>
+          <div>🔢 <strong>Số TK:</strong> <strong style="color: #0369a1;">8888 6868 9999</strong></div>
+          <div>💰 <strong>Số tiền:</strong> <strong style="color: var(--primary);"><%= Number(order.total_amount).toLocaleString('vi-VN') %> ₫</strong></div>
+          <div>📝 <strong>Nội dung CK:</strong> <code>SAKURA <%= order.order_code %></code></div>
+        </div>
+      </div>
+
+      <!-- Khung nhập tiền khách đưa & Mệnh giá nhanh -->
+      <div class="form-group" id="cashGroup">
+        <label class="form-label">Số tiền khách đưa (VNĐ)</label>
+        <input type="number" name="amount_paid" id="amtPaid" class="form-control" value="<%= order.total_amount %>" min="<%= order.total_amount %>" step="1000" style="font-size: 1.1rem; font-weight: 800;" required>
+
+        <div id="quick-cash-btns" style="display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.6rem;">
+          <button type="button" class="btn btn-secondary btn-sm cash-preset" data-val="<%= order.total_amount %>">Đưa vừa đủ</button>
+          <button type="button" class="btn btn-secondary btn-sm cash-preset" data-val="100000">100.000 ₫</button>
+          <button type="button" class="btn btn-secondary btn-sm cash-preset" data-val="200000">200.000 ₫</button>
+          <button type="button" class="btn btn-secondary btn-sm cash-preset" data-val="500000">500.000 ₫</button>
+          <button type="button" class="btn btn-secondary btn-sm cash-preset" data-val="1000000">1.000.000 ₫</button>
+        </div>
+
+        <div id="changeText" style="margin-top: 0.75rem; padding: 0.6rem 0.85rem; background: var(--success-soft); border: 1px solid #a7f3d0; border-radius: 8px; font-weight: 800; color: #047857; font-size: 1rem;">
+          💰 Tiền thối lại cho khách: 0 ₫
+        </div>
+      </div>
+
+      <div style="margin-top: 1.25rem;">
+        <button type="submit" class="btn btn-success" style="width: 100%; font-size: 1.02rem; padding: 0.85rem; font-weight: 800;">
+          ✅ Xác Nhận Thu Tiền &amp; Mở Trống <%= order.table_code %>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function() {
+  const total = <%= Number(order.total_amount) %>;
+  const orderCode = "<%= order.order_code %>";
+  const amtInput = document.getElementById('amtPaid');
+  const changeDiv = document.getElementById('changeText');
+  const methodSel = document.getElementById('payMethod');
+  const qrBox = document.getElementById('qr-payment-box');
+  const qrSvgContainer = document.getElementById('dynamic-qr-svg');
+  const quickCashBtns = document.getElementById('quick-cash-btns');
+
+  // Tạo mã QR Matrix SVG động từ mã đơn & tổng tiền (hoạt động 100% offline/CSP-safe)
+  function renderDynamicQR(seedStr) {
+    const size = 21;
+    const cell = 7;
+    const pad = 2;
+    const totalPx = (size + pad * 2) * cell;
+    let hash = 2166136261;
+    for (let i = 0; i < seedStr.length; i++) {
+      hash ^= seedStr.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+
+    function isFinder(r, c) {
+      const inTL = r < 7 && c < 7;
+      const inTR = r < 7 && c >= size - 7;
+      const inBL = r >= size - 7 && c < 7;
+      return inTL || inTR || inBL;
+    }
+
+    function finderBit(r, c, r0, c0) {
+      const dr = r - r0;
+      const dc = c - c0;
+      if (dr === 0 || dr === 6 || dc === 0 || dc === 6) return true;
+      if (dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4) return true;
+      return false;
+    }
+
+    let rects = '';
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        let on = false;
+        if (r < 7 && c < 7) on = finderBit(r, c, 0, 0);
+        else if (r < 7 && c >= size - 7) on = finderBit(r, c, 0, size - 7);
+        else if (r >= size - 7 && c < 7) on = finderBit(r, c, size - 7, 0);
+        else if (r === 6 || c === 6) on = (r + c) % 2 === 0;
+        else if (!isFinder(r, c)) {
+          hash ^= (r * 31 + c * 17) & 0xff;
+          hash = Math.imul(hash, 16777619);
+          on = (Math.abs(hash) % 10) < 5;
+        }
+        if (on) {
+          rects += `<rect x="${(c + pad) * cell}" y="${(r + pad) * cell}" width="${cell}" height="${cell}" fill="#0f172a" rx="1"/>`;
+        }
+      }
+    }
+
+    qrSvgContainer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="${totalPx}" height="${totalPx}" viewBox="0 0 ${totalPx} ${totalPx}">
+      <rect width="${totalPx}" height="${totalPx}" fill="#ffffff"/>
+      ${rects}
+    </svg>`;
+  }
+
+  renderDynamicQR('SAKURA|' + orderCode + '|' + total);
+
+  function updateChange() {
+    const paid = parseFloat(amtInput.value) || 0;
+    const change = paid - total;
+    if (change >= 0) {
+      changeDiv.style.background = '#ecfdf5';
+      changeDiv.style.color = '#047857';
+      changeDiv.textContent = '💰 Tiền thối lại cho khách: ' + change.toLocaleString('vi-VN') + ' ₫';
+    } else {
+      changeDiv.style.background = '#fef2f2';
+      changeDiv.style.color = '#dc2626';
+      changeDiv.textContent = '⚠️ Khách đưa còn thiếu: ' + Math.abs(change).toLocaleString('vi-VN') + ' ₫';
+    }
+  }
+
+  amtInput.addEventListener('input', updateChange);
+
+  document.querySelectorAll('.cash-preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const val = Number(btn.dataset.val);
+      amtInput.value = val < total ? total : val;
+      updateChange();
+    });
+  });
+
+  methodSel.addEventListener('change', function() {
+    if (this.value === 'qr') {
+      qrBox.style.display = 'block';
+      amtInput.value = total;
+      amtInput.readOnly = true;
+      quickCashBtns.style.display = 'none';
+    } else if (this.value === 'card') {
+      qrBox.style.display = 'none';
+      amtInput.value = total;
+      amtInput.readOnly = true;
+      quickCashBtns.style.display = 'none';
+    } else {
+      qrBox.style.display = 'none';
+      amtInput.readOnly = false;
+      quickCashBtns.style.display = 'flex';
+    }
+    updateChange();
+  });
+})();
+</script>
+
+<%- include('../footer') %>

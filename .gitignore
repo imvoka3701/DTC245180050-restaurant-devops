@@ -1,0 +1,20 @@
+# Environment & secrets
+.env
+nginx/certs/*.key
+nginx/certs/*.crt
+
+# Dependencies
+node_modules/
+
+# Evidence & audit
+evidence/
+docs/AUDIT.md
+
+# Uploads (keep .gitkeep)
+web/public/uploads/*
+!web/public/uploads/.gitkeep
+
+# Logs & Volumes
+*.log
+data/
+pgdata/

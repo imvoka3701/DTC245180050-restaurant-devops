@@ -1,0 +1,185 @@
+<%- include('../layout') %>
+<%- include('_header') %>
+
+<!-- Bộ lọc Từ ngày - Đến ngày & Xuất báo cáo Excel/CSV -->
+<div class="admin-filter-card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+  <form action="/manager/dashboard" method="GET" class="admin-date-filter-form">
+    <div class="admin-filter-group">
+      <label for="start_date">Từ ngày:</label>
+      <input type="date" id="start_date" name="start_date" value="<%= startDate %>" class="admin-date-input">
+    </div>
+    <div class="admin-filter-group">
+      <label for="end_date">Đến ngày:</label>
+      <input type="date" id="end_date" name="end_date" value="<%= endDate %>" class="admin-date-input">
+    </div>
+    <button type="submit" class="btn-admin-orange">🔍 Lọc Số Liệu</button>
+    <a href="/manager/dashboard?range=today" class="btn-admin-light <%= rangeMode === 'today' ? 'active' : '' %>">Hôm Nay</a>
+    <a href="/manager/dashboard?range=all" class="btn-admin-light <%= rangeMode === 'all' ? 'active' : '' %>">Tất Cả</a>
+  </form>
+
+  <a
+    href="/manager/dashboard/export?start_date=<%= startDate %>&amp;end_date=<%= endDate %>&amp;range=<%= rangeMode %>"
+    class="btn btn-success btn-sm"
+    style="padding: 0.55rem 1.05rem; font-weight: 700; border-radius: 8px;"
+  >
+    📥 Xuất Báo Cáo Excel (CSV)
+  </a>
+</div>
+
+<!-- 3 Thẻ KPI Tổng Quan -->
+<div class="admin-kpi-row">
+  <div class="admin-kpi-box kpi-border-orange">
+    <div class="admin-kpi-title">Tổng Doanh Thu Đã Thu</div>
+    <div class="admin-kpi-number text-orange">
+      <%= Number(totalRevenue).toLocaleString('vi-VN') %> <span class="u-currency">đ</span>
+    </div>
+  </div>
+
+  <div class="admin-kpi-box kpi-border-indigo">
+    <div class="admin-kpi-title">Tổng Đơn Hàng Hoàn Tất</div>
+    <div class="admin-kpi-number text-indigo">
+      <%= completedOrders %>
+    </div>
+  </div>
+
+  <div class="admin-kpi-box kpi-border-emerald">
+    <div class="admin-kpi-title">Giá Trị Trung Bình / Đơn</div>
+    <div class="admin-kpi-number text-emerald">
+      <%= Number(avgOrderValue).toLocaleString('vi-VN') %> <span class="u-currency">đ</span>
+    </div>
+  </div>
+</div>
+
+<!-- Khu vực Biểu Đồ Doanh Thu Trực Quan (2 Cột) -->
+<%
+  const dailyList = typeof dailyRevenue !== 'undefined' ? dailyRevenue : [];
+  const catList = typeof categoryRevenue !== 'undefined' ? categoryRevenue : [];
+  const maxDailyRev = dailyList.reduce((m, r) => Math.max(m, Number(r.revenue || 0)), 0) || 1;
+  const totalCatRev = catList.reduce((s, c) => s + Number(c.revenue || 0), 0);
+  const catColors = ['#f97316', '#e11d48', '#6366f1', '#10b981', '#0284c7', '#d97706'];
+%>
+<div class="grid grid-2" style="align-items: stretch; margin-bottom: 1.5rem;">
+  <!-- Biểu đồ 1: Doanh thu theo ngày -->
+  <div class="admin-panel-card" style="margin-bottom: 0; display: flex; flex-direction: column;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h2 style="font-size: 1.02rem; font-weight: 800; color: var(--text-main); margin: 0;">
+        📊 Biểu Đồ Xu Hướng Doanh Thu Theo Ngày
+      </h2>
+      <span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">
+        <%= rangeMode === 'all' ? 'Tất cả thời gian' : (startDate === endDate ? ('Ngày ' + startDate) : (startDate + ' → ' + endDate)) %>
+      </span>
+    </div>
+
+    <% if (dailyList.length === 0) { %>
+      <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1rem; color: #64748b; background: #f8fafc; border-radius: 12px; border: 1px dashed #e2e8f0;">
+        <div style="font-size: 1.8rem; margin-bottom: 0.35rem;">📉</div>
+        <div style="font-size: 0.88rem; font-weight: 600;">Chưa có phát sinh doanh thu trong khoảng ngày này</div>
+        <div style="font-size: 0.78rem; margin-top: 0.2rem;">Bấm nút <strong>"Tất Cả"</strong> ở bộ lọc phía trên để xem toàn bộ lịch sử doanh thu</div>
+      </div>
+    <% } else { %>
+      <div style="flex: 1; display: flex; align-items: flex-end; gap: 0.85rem; min-height: 185px; padding: 1.2rem 0.75rem 0.5rem; background: #fafaf9; border: 1px solid #f1f5f9; border-radius: 12px; overflow-x: auto;">
+        <% dailyList.forEach(d => { %>
+          <% const pct = Math.max(12, Math.round((Number(d.revenue) / maxDailyRev) * 100)); %>
+          <div style="flex: 1; min-width: 72px; display: flex; flex-direction: column; align-items: center; gap: 0.35rem;">
+            <div style="font-size: 0.72rem; font-weight: 800; color: #ea580c; white-space: nowrap;">
+              <%= Number(d.revenue).toLocaleString('vi-VN') %> đ
+            </div>
+            <div style="width: 100%; height: 115px; display: flex; align-items: flex-end; justify-content: center;">
+              <div
+                style="width: 38px; height: <%= pct %>%; background: linear-gradient(180deg, #f97316, #e11d48); border-radius: 8px 8px 3px 3px; box-shadow: 0 4px 10px rgba(234, 88, 12, 0.22); transition: height 0.3s ease;"
+                title="<%= d.day_label %>: <%= Number(d.revenue).toLocaleString('vi-VN') %> đ (<%= d.orders_count %> đơn)"
+              ></div>
+            </div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: #334155;"><%= d.day_label.slice(0, 5) %></div>
+            <div style="font-size: 0.68rem; color: #64748b;"><%= d.orders_count %> đơn</div>
+          </div>
+        <% }); %>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- Biểu đồ 2: Tỷ trọng doanh thu theo Danh mục -->
+  <div class="admin-panel-card" style="margin-bottom: 0;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h2 style="font-size: 1.02rem; font-weight: 800; color: var(--text-main); margin: 0;">
+        🍩 Tỷ Trọng Doanh Thu Theo Danh Mục
+      </h2>
+      <span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">5 nhóm thực đơn</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+      <% catList.forEach((c, idx) => { %>
+        <%
+          const rev = Number(c.revenue || 0);
+          const share = totalCatRev > 0 ? Math.round((rev / totalCatRev) * 100) : 0;
+          const barColor = catColors[idx % catColors.length];
+        %>
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.84rem; margin-bottom: 0.28rem;">
+            <span style="font-weight: 700; color: #1e293b;"><%= c.category_name %> (<%= c.total_qty %> phần)</span>
+            <span style="font-weight: 800; color: <%= barColor %>;">
+              <%= rev.toLocaleString('vi-VN') %> ₫ (<%= share %>%)
+            </span>
+          </div>
+          <div style="width: 100%; height: 10px; background: #f1f5f9; border-radius: 999px; overflow: hidden;">
+            <div style="width: <%= share %>%; height: 100%; background: <%= barColor %>; border-radius: 999px; transition: width 0.35s ease;"></div>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  </div>
+</div>
+
+<!-- Bảng Top 10 Món Ăn Bán Chạy Nhất -->
+<div class="admin-panel-card" style="padding: 0; overflow: hidden;">
+  <div style="padding: 1.25rem 1.5rem;">
+    <h2 style="font-size: 1.08rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
+      🏆 Top 10 Món Ăn Bán Chạy Nhất
+    </h2>
+  </div>
+
+  <div class="table-responsive">
+    <table class="admin-clean-table">
+      <thead>
+        <tr>
+          <th>TÊN MÓN ĂN</th>
+          <th>DANH MỤC</th>
+          <th style="text-align: center;">SỐ LƯỢNG ĐÃ BÁN</th>
+          <th style="text-align: right;">DOANH THU ĐÓNG GÓP</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!topDishes || topDishes.length === 0) { %>
+          <tr>
+            <td colspan="4" class="admin-empty-cell">
+              Chưa có đơn hàng thanh toán trong khoảng thời gian này
+            </td>
+          </tr>
+        <% } else { %>
+          <% topDishes.forEach((d, index) => { %>
+            <tr>
+              <td>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <span class="rank-badge rank-<%= index + 1 %>">#<%= index + 1 %></span>
+                  <img src="<%= d.image_path %>" alt="<%= d.name %>" style="width: 40px; height: 32px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color);">
+                  <strong><%= d.name %></strong>
+                </div>
+              </td>
+              <td>
+                <span class="status-badge status-confirmed"><%= d.category_name %></span>
+              </td>
+              <td style="text-align: center;">
+                <strong><%= d.total_sold %></strong> phần
+              </td>
+              <td style="text-align: right;">
+                <strong style="color: #ea580c;"><%= Number(d.total_revenue).toLocaleString('vi-VN') %> ₫</strong>
+              </td>
+            </tr>
+          <% }); %>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../footer') %>

@@ -1,0 +1,88 @@
+<%- include('../layout') %>
+<%- include('_header') %>
+
+<% if (error) { %><div class="alert alert-error">⚠️ <%= error %></div><% } %>
+<% if (success) { %><div class="alert alert-success">✅ <%= success %></div><% } %>
+
+<div class="admin-panel-card" style="padding: 0; overflow: hidden;">
+  <div style="padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <h2 style="font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin: 0;">
+      📅 Sổ Đặt Bàn Hệ Thống (<%= reservations.length %> lịch đặt)
+    </h2>
+    <span style="font-size: 0.85rem; color: var(--text-muted);">
+      Đồng bộ trực tiếp với tài khoản Khách hàng &amp; Nhân viên
+    </span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="admin-clean-table">
+      <thead>
+        <tr>
+          <th>MÃ</th>
+          <th>KHÁCH HÀNG</th>
+          <th>BÀN PHỤC VỤ</th>
+          <th>SỐ KHÁCH</th>
+          <th>THỜI GIAN HẸN</th>
+          <th>GHI CHÚ</th>
+          <th>TRẠNG THÁI</th>
+          <th style="text-align: right;">ĐIỀU PHỐI</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!reservations || reservations.length === 0) { %>
+          <tr>
+            <td colspan="8" class="admin-empty-cell">
+              Chưa có lịch đặt bàn nào trong hệ thống
+            </td>
+          </tr>
+        <% } else { %>
+          <% reservations.forEach(r => { %>
+            <tr>
+              <td><strong>#<%= r.id %></strong></td>
+              <td>
+                <div><strong><%= r.customer_name %></strong></div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);"><%= r.customer_email %></div>
+              </td>
+              <td>
+                <span class="status-badge status-confirmed"><%= r.table_code %> (<%= r.table_seats %> ghế)</span>
+              </td>
+              <td><strong><%= r.party_size %> người</strong></td>
+              <td><%= new Date(r.reserved_at).toLocaleString('vi-VN') %></td>
+              <td style="max-width: 200px; font-size: 0.85rem; color: var(--text-secondary);"><%= r.note || '—' %></td>
+              <td>
+                <span class="status-badge status-<%= r.status %>">
+                  <%= r.status === 'pending' ? '⏳ Chờ xác nhận' : (r.status === 'confirmed' ? '✅ Đã xác nhận' : (r.status === 'completed' ? '🎉 Đã hoàn tất' : '❌ Đã hủy')) %>
+                </span>
+              </td>
+              <td style="text-align: right; white-space: nowrap;">
+                <% if (r.status === 'pending') { %>
+                  <form action="/manager/reservations/<%= r.id %>/status" method="POST" style="display: inline;">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input type="hidden" name="status" value="confirmed">
+                    <button type="submit" class="btn btn-primary btn-sm">✓ Duyệt giữ bàn</button>
+                  </form>
+                <% } %>
+                <% if (r.status === 'confirmed') { %>
+                  <form action="/manager/reservations/<%= r.id %>/status" method="POST" style="display: inline;">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input type="hidden" name="status" value="completed">
+                    <button type="submit" class="btn btn-success btn-sm">✓ Khách đã nhận bàn</button>
+                  </form>
+                <% } %>
+                <% if (r.status === 'pending' || r.status === 'confirmed') { %>
+                  <form action="/manager/reservations/<%= r.id %>/status" method="POST" style="display: inline;">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input type="hidden" name="status" value="cancelled">
+                    <button type="submit" class="btn btn-danger btn-sm">✕ Hủy</button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }); %>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../footer') %>

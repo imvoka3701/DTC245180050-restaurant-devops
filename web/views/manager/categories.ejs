@@ -1,0 +1,50 @@
+<%- include('../layout') %>
+<div style="margin-bottom: 1.5rem;">
+  <h1>Quản Lý Danh Mục Món Ăn</h1>
+</div>
+
+<% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+<% if (success) { %><div class="alert alert-success"><%= success %></div><% } %>
+
+<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem;">
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">Thêm danh mục</h3></div>
+    <form action="/manager/categories" method="POST">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="form-group">
+        <label class="form-label">Tên danh mục</label>
+        <input type="text" name="name" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Thứ tự sắp xếp</label>
+        <input type="number" name="sort_order" class="form-control" value="0">
+      </div>
+      <button type="submit" class="btn btn-primary" style="width: 100%;">Thêm danh mục</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">Danh sách danh mục</h3></div>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Tên danh mục</th>
+            <th>Thứ tự</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% categories.forEach(c => { %>
+            <tr>
+              <td>#<%= c.id %></td>
+              <td><strong><%= c.name %></strong></td>
+              <td><%= c.sort_order %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<%- include('../footer') %>

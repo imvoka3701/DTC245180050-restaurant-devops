@@ -1,0 +1,105 @@
+<%- include('../layout') %>
+<%- include('_header') %>
+
+<% if (error) { %><div class="alert alert-error">⚠️ <%= error %></div><% } %>
+<% if (success) { %><div class="alert alert-success">✅ <%= success %></div><% } %>
+
+<%
+  const availCount = tables.filter(t => t.status === 'available').length;
+  const occCount = tables.filter(t => t.status === 'occupied').length;
+  const resCount = tables.filter(t => t.status === 'reserved').length;
+%>
+
+<div class="admin-kpi-row" style="margin-bottom: 1.5rem;">
+  <div class="admin-kpi-box kpi-border-emerald">
+    <div class="admin-kpi-title">🟢 Bàn Đang Trống (Sẵn sàng)</div>
+    <div class="admin-kpi-number text-emerald"><%= availCount %> / <%= tables.length %> bàn</div>
+  </div>
+  <div class="admin-kpi-box kpi-border-orange">
+    <div class="admin-kpi-title">🔴 Bàn Đang Có Khách Phục Vụ</div>
+    <div class="admin-kpi-number text-orange"><%= occCount %> bàn</div>
+  </div>
+  <div class="admin-kpi-box kpi-border-indigo">
+    <div class="admin-kpi-title">🟡 Bàn Đã Đặt Trước</div>
+    <div class="admin-kpi-number text-indigo"><%= resCount %> bàn</div>
+  </div>
+</div>
+
+<!-- Khai báo các thẻ <form> chuẩn HTML5 bên ngoài bảng -->
+<% tables.forEach(t => { %>
+  <form id="form-table-<%= t.id %>" action="/manager/tables/<%= t.id %>/status" method="POST" style="display:none;">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  </form>
+<% }); %>
+
+<div class="grid grid-2" style="align-items: start;">
+  <!-- Form thêm bàn ăn mới -->
+  <div class="admin-panel-card">
+    <div class="card-header">
+      <h3 class="card-title">🪑 Thêm Bàn Ăn Mới</h3>
+    </div>
+    <form action="/manager/tables" method="POST">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="form-group">
+        <label class="form-label">Mã / Tên bàn *</label>
+        <input type="text" name="code" class="form-control" placeholder="VD: Bàn 11 hoặc Phòng VIP 01" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Sức chứa (Số ghế) *</label>
+        <input type="number" name="seats" class="form-control" min="1" max="30" value="4" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Trạng thái ban đầu</label>
+        <select name="status" class="form-control">
+          <option value="available">🟢 Bàn trống (Available)</option>
+          <option value="occupied">🔴 Đang có khách (Occupied)</option>
+          <option value="reserved">🟡 Đã đặt trước (Reserved)</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-admin-orange" style="width: 100%; justify-content: center;">+ Thêm Bàn Phục Vụ</button>
+    </form>
+  </div>
+
+  <!-- Danh sách 10 bàn ăn & Điều chỉnh trạng thái đồng bộ trực tiếp -->
+  <div class="admin-panel-card" style="padding: 0; overflow: hidden;">
+    <div style="padding: 1.25rem 1.5rem;">
+      <h3 class="card-title" style="margin: 0;">🗺️ Sơ Đồ &amp; Trạng Thái Bàn Ăn Đồng Bộ Trang Chủ (<%= tables.length %> bàn)</h3>
+    </div>
+    <div class="table-responsive">
+      <table class="admin-clean-table">
+        <thead>
+          <tr>
+            <th>MÃ BÀN</th>
+            <th>SỐ GHẾ</th>
+            <th>TRẠNG THÁI HIỆN TẠI</th>
+            <th style="text-align: right;">ĐỒNG BỘ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% tables.forEach(t => { %>
+            <tr>
+              <td>
+                <input type="text" name="code" form="form-table-<%= t.id %>" value="<%= t.code %>" class="form-control" style="font-weight: 700; width: 115px; padding: 0.38rem 0.6rem;" required>
+              </td>
+              <td>
+                <input type="number" name="seats" form="form-table-<%= t.id %>" value="<%= t.seats %>" min="1" max="30" class="form-control" style="width: 75px; padding: 0.38rem 0.5rem;" required>
+              </td>
+              <td>
+                <select name="status" form="form-table-<%= t.id %>" class="form-control" style="padding: 0.38rem 0.5rem; font-weight: 600;">
+                  <option value="available" <%= t.status === 'available' ? 'selected' : '' %>>🟢 Bàn trống</option>
+                  <option value="occupied" <%= t.status === 'occupied' ? 'selected' : '' %>>🔴 Đang phục vụ</option>
+                  <option value="reserved" <%= t.status === 'reserved' ? 'selected' : '' %>>🟡 Đã đặt trước</option>
+                </select>
+              </td>
+              <td style="text-align: right;">
+                <button type="submit" form="form-table-<%= t.id %>" class="btn btn-primary btn-sm">💾 Lưu</button>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../footer') %>

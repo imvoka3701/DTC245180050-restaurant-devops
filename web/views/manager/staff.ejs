@@ -1,0 +1,104 @@
+<%- include('../layout') %>
+<%- include('_header') %>
+
+<% if (error) { %><div class="alert alert-error">⚠️ <%= error %></div><% } %>
+<% if (success) { %><div class="alert alert-success">✅ <%= success %></div><% } %>
+
+<div class="grid grid-2" style="align-items: start;">
+  <!-- Tạo tài khoản mới -->
+  <div class="admin-panel-card">
+    <div class="card-header">
+      <h3 class="card-title">👤 Tạo Tài Khoản Hệ Thống Mới</h3>
+    </div>
+    <form action="/manager/staff" method="POST">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="form-group">
+        <label class="form-label">Họ và tên hiển thị *</label>
+        <input type="text" name="full_name" class="form-control" placeholder="VD: Nguyễn Văn A" required>
+      </div>
+      <div class="grid grid-2" style="gap: 0.85rem;">
+        <div class="form-group">
+          <label class="form-label">Tên đăng nhập (Username) *</label>
+          <input type="text" name="username" class="form-control" placeholder="VD: nhanvien03" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Vai trò phân quyền (Role) *</label>
+          <select name="role" class="form-control" required>
+            <option value="staff">👨‍🍳 Nhân viên (Staff)</option>
+            <option value="manager">👑 Quản trị viên (Manager)</option>
+            <option value="customer">🙋‍♂️ Khách hàng (Customer)</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-2" style="gap: 0.85rem;">
+        <div class="form-group">
+          <label class="form-label">Địa chỉ Email *</label>
+          <input type="email" name="email" class="form-control" placeholder="nv03@restaurant.vn" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mật khẩu khởi tạo *</label>
+          <input type="password" name="password" class="form-control" minlength="6" placeholder="Tối thiểu 6 ký tự" required>
+        </div>
+      </div>
+      <button type="submit" class="btn-admin-orange" style="width: 100%; justify-content: center;">+ Cấp Tài Khoản Mới</button>
+    </form>
+  </div>
+
+  <!-- Danh sách tài khoản tất cả Role -->
+  <div class="admin-panel-card" style="padding: 0; overflow: hidden;">
+    <div style="padding: 1.25rem 1.5rem;">
+      <h3 class="card-title" style="margin: 0;">👥 Danh Sách Tài Khoản &amp; Phân Quyền (<%= staffList.length %> tài khoản)</h3>
+    </div>
+    <div class="table-responsive">
+      <table class="admin-clean-table">
+        <thead>
+          <tr>
+            <th>TÀI KHOẢN</th>
+            <th>VAI TRÒ (ROLE)</th>
+            <th>TRẠNG THÁI</th>
+            <th style="text-align: right;">KHÓA / MỞ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% staffList.forEach(s => { %>
+            <tr>
+              <td>
+                <div><strong><%= s.full_name %></strong></div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">@<%= s.username %> • <%= s.email %></div>
+              </td>
+              <td>
+                <form action="/manager/staff/<%= s.id %>/role" method="POST" style="display: inline-flex; gap: 0.35rem; align-items: center;">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <select name="role" class="form-control" style="padding: 0.3rem 0.5rem; font-size: 0.82rem; font-weight: 700; width: 125px;" onchange="this.form.submit()" <%= (user && user.id === s.id) ? 'disabled' : '' %>>
+                    <option value="manager" <%= s.role === 'manager' ? 'selected' : '' %>>👑 Manager</option>
+                    <option value="staff" <%= s.role === 'staff' ? 'selected' : '' %>>👨‍🍳 Staff</option>
+                    <option value="customer" <%= s.role === 'customer' ? 'selected' : '' %>>🙋‍♂️ Customer</option>
+                  </select>
+                </form>
+              </td>
+              <td>
+                <span class="status-badge <%= s.is_active ? 'status-available' : 'status-cancelled' %>">
+                  <%= s.is_active ? 'Đang hoạt động' : 'Đã khóa' %>
+                </span>
+              </td>
+              <td style="text-align: right;">
+                <% if (!user || user.id !== s.id) { %>
+                  <form action="/manager/staff/<%= s.id %>/toggle" method="POST" style="display: inline;">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button type="submit" class="btn <%= s.is_active ? 'btn-danger' : 'btn-success' %> btn-sm">
+                      <%= s.is_active ? '🔒 Khóa' : '🔓 Mở khóa' %>
+                    </button>
+                  </form>
+                <% } else { %>
+                  <span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">Đang đăng nhập</span>
+                <% } %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../footer') %>

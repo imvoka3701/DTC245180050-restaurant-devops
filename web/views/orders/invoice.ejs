@@ -1,0 +1,60 @@
+<%- include('../layout') %>
+<div class="card invoice-box" style="max-width: 650px; margin: 2rem auto; padding: 2rem;">
+  <div style="text-align: center; margin-bottom: 2rem; border-bottom: 2px dashed var(--border-color); padding-bottom: 1.5rem;">
+    <h2 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 0.3rem;">NHÀ HÀNG ẨM THỰC VIỆT</h2>
+    <p style="color: var(--text-muted); font-size: 0.9rem;">HÓA ĐƠN THANH TOÁN DỊCH VỤ</p>
+    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Mã hóa đơn: <strong>#<%= order.order_code %></strong></p>
+    <p style="font-size: 0.85rem; color: var(--text-muted);">Bàn: <strong><%= order.table_code %></strong> | Thời gian: <%= new Date(order.paid_at || order.created_at).toLocaleString('vi-VN') %></p>
+    <p style="font-size: 0.85rem; color: var(--text-muted);">Thu ngân / Phục vụ: <%= order.staff_name %></p>
+  </div>
+
+  <table class="table" style="margin-bottom: 1.5rem;">
+    <thead>
+      <tr>
+        <th>Món</th>
+        <th style="text-align: center;">SL</th>
+        <th style="text-align: right;">Đơn giá</th>
+        <th style="text-align: right;">Thành tiền</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% items.forEach(it => { %>
+        <tr>
+          <td><%= it.item_name %></td>
+          <td style="text-align: center;"><%= it.quantity %></td>
+          <td style="text-align: right;"><%= Number(it.unit_price).toLocaleString('vi-VN') %> đ</td>
+          <td style="text-align: right;"><%= Number(it.unit_price * it.quantity).toLocaleString('vi-VN') %> đ</td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+
+  <div style="border-top: 1px solid var(--border-color); padding-top: 1rem; line-height: 1.8;">
+    <div style="display: flex; justify-content: space-between; font-size: 1.15rem; font-weight: 800;">
+      <span>TỔNG CỘNG:</span>
+      <span style="color: #fb7185;"><%= Number(order.total_amount).toLocaleString('vi-VN') %> đ</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; font-size: 0.95rem; color: var(--text-muted);">
+      <span>Phương thức:</span>
+      <span><%= order.payment_method === 'cash' ? 'Tiền mặt' : (order.payment_method === 'qr' ? 'Quét mã QR' : 'Thẻ ngân hàng') %></span>
+    </div>
+    <div style="display: flex; justify-content: space-between; font-size: 0.95rem; color: var(--text-muted);">
+      <span>Khách đưa:</span>
+      <span><%= Number(order.amount_paid).toLocaleString('vi-VN') %> đ</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; font-size: 0.95rem; color: #34d399; font-weight: 700;">
+      <span>Tiền thối lại:</span>
+      <span><%= Number(order.change_amount).toLocaleString('vi-VN') %> đ</span>
+    </div>
+  </div>
+
+  <div style="text-align: center; margin-top: 2rem; border-top: 2px dashed var(--border-color); padding-top: 1rem; color: var(--text-muted); font-size: 0.85rem;">
+    <p>Cảm ơn Quý khách và Hẹn gặp lại!</p>
+  </div>
+
+  <div class="no-print" style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center;">
+    <button onclick="window.print()" class="btn btn-primary">🖨️ In Hóa Đơn</button>
+    <a href="/orders" class="btn btn-secondary">Về danh sách đơn</a>
+  </div>
+</div>
+<%- include('../footer') %>

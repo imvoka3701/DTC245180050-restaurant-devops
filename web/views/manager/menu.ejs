@@ -1,0 +1,352 @@
+<%- include('../layout') %>
+<%- include('_header') %>
+
+<% if (error) { %><div class="alert alert-error">⚠️ <%= error %></div><% } %>
+<% if (success) { %><div class="alert alert-success"><%= success %></div><% } %>
+
+<%
+  const realPhotoCount = items.filter(i => i.image_path && i.image_path.startsWith('/uploads/')).length;
+  const activeDishCount = items.filter(i => i.is_available).length;
+%>
+
+<!-- Thống kê đồng bộ Thực đơn -->
+<div class="admin-kpi-row" style="margin-bottom: 1.5rem;">
+  <div class="admin-kpi-box kpi-border-orange">
+    <div class="admin-kpi-title">🍱 Tổng Số Món Trong Thực Đơn</div>
+    <div class="admin-kpi-number text-orange"><%= items.length %> món</div>
+  </div>
+  <div class="admin-kpi-box kpi-border-emerald">
+    <div class="admin-kpi-title">🟢 Đang Hiển Thị Trên Trang Chủ</div>
+    <div class="admin-kpi-number text-emerald"><%= activeDishCount %> món</div>
+  </div>
+  <div class="admin-kpi-box kpi-border-indigo">
+    <div class="admin-kpi-title">📸 Món Đã Tải Ảnh Chụp Thật</div>
+    <div class="admin-kpi-number text-indigo"><%= realPhotoCount %> / <%= items.length %> món</div>
+  </div>
+</div>
+
+<div class="grid grid-2" style="align-items: start; margin-bottom: 1.5rem;">
+  <!-- Form Thêm Món Ăn Mới Kèm Tải Ảnh & Xem Trước Trực Quan -->
+  <div class="admin-panel-card">
+    <div class="card-header">
+      <h3 class="card-title">🍱 Tạo Món Ăn Mới &amp; Tải Ảnh Hiển Thị Trang Chủ</h3>
+    </div>
+    <form action="/manager/menu?_csrf=<%= csrfToken %>" method="POST" enctype="multipart/form-data" id="create-dish-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="grid grid-2" style="gap: 0.85rem;">
+        <div class="form-group">
+          <label class="form-label">Tên món ăn / đồ uống *</label>
+          <input type="text" name="name" id="new-dish-name" class="form-control" placeholder="VD: Sashimi Bụng Cá Hồi..." required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Danh mục *</label>
+          <select name="category_id" id="new-dish-cat" class="form-control" required>
+            <% categories.forEach(c => { %>
+              <option value="<%= c.id %>" data-cat-name="<%= c.name %>"><%= c.name %></option>
+            <% }); %>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-2" style="gap: 0.85rem;">
+        <div class="form-group">
+          <label class="form-label">Đơn giá bán (VNĐ) *</label>
+          <input type="number" name="price" id="new-dish-price" class="form-control" min="0" step="1000" placeholder="VD: 145000" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Trạng thái hiển thị</label>
+          <div style="display: flex; align-items: center; gap: 0.5rem; height: 42px; padding: 0 0.75rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <input type="checkbox" name="is_available" id="new_avail" checked style="width: 18px; height: 18px;">
+            <label for="new_avail" style="font-weight: 600; font-size: 0.88rem; cursor: pointer;">Hiển thị ngay trên Trang chủ</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Mô tả hương vị &amp; nguyên liệu</label>
+        <input type="text" name="description" id="new-dish-desc" class="form-control" placeholder="Mô tả ngắn gọn nguyên liệu & hương vị...">
+      </div>
+
+      <!-- Khu vực Tải ảnh chụp thật + Xem trước thẻ món ăn -->
+      <div class="form-group">
+        <label class="form-label">📸 Tải ảnh chụp món ăn thật (PNG, JPG, WEBP ≤ 5MB) *</label>
+        <div class="grid grid-2" style="gap: 1rem; align-items: stretch;">
+          <label for="new-dish-image-input" id="drop-zone-new" style="border: 2px dashed #f97316; background: #fff7ed; border-radius: 12px; padding: 1.15rem; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem; transition: all 0.2s;">
+            <span style="font-size: 2rem;">📷</span>
+            <span style="font-weight: 700; color: #ea580c; font-size: 0.9rem;">Bấm để chọn ảnh món ăn</span>
+            <span id="new-file-name-text" style="font-size: 0.78rem; color: #64748b;">Hoặc kéo thả file JPG, PNG, WEBP vào đây</span>
+            <input type="file" name="image" id="new-dish-image-input" accept="image/png,image/jpeg,image/webp" style="display: none;" required>
+          </label>
+
+          <!-- Xem trước thẻ món ăn giống hệt Trang chủ -->
+          <div style="border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; background: #ffffff; box-shadow: var(--shadow-sm);">
+            <div style="position: relative; height: 115px; background: #f5f2eb; overflow: hidden;">
+              <img id="new-dish-preview-img" src="/images/menu/dish-01.svg" alt="Xem trước" style="width: 100%; height: 100%; object-fit: cover;">
+              <span id="new-dish-preview-cat" class="dish-cat-overlay" style="font-size: 0.68rem; padding: 2px 8px;">🍱 Khai vị</span>
+              <span style="position: absolute; bottom: 6px; right: 6px; background: rgba(15,23,42,0.75); color: #fff; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px;">Xem trước Trang chủ</span>
+            </div>
+            <div style="padding: 0.6rem 0.75rem;">
+              <div id="new-dish-preview-title" style="font-weight: 700; font-size: 0.88rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Tên món ăn mới</div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.35rem;">
+                <span id="new-dish-preview-price" style="font-weight: 800; color: var(--primary); font-size: 0.9rem;">0 ₫</span>
+                <span style="background: var(--primary); color: #fff; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 4px;">+ Thêm</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-admin-orange" style="width: 100%; justify-content: center; padding: 0.75rem; font-size: 0.95rem;">
+        🚀 Tạo Món Ăn &amp; Hiển Thị Lên Trang Chủ
+      </button>
+    </form>
+  </div>
+
+  <!-- Quản lý Danh mục thực đơn -->
+  <div class="admin-panel-card">
+    <div class="card-header">
+      <h3 class="card-title">🗂️ Quản Lý Danh Mục Thực Đơn (<%= categories.length %> danh mục)</h3>
+    </div>
+    <form action="/manager/categories" method="POST" style="display: flex; gap: 0.65rem; flex-wrap: wrap; margin-bottom: 1rem;">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="redirect_to" value="/manager/menu">
+      <input type="text" name="name" class="form-control" placeholder="Nhập tên danh mục mới..." style="flex: 2; min-width: 160px;" required>
+      <input type="number" name="sort_order" class="form-control" placeholder="Thứ tự" value="<%= categories.length + 1 %>" style="width: 90px;" required>
+      <button type="submit" class="btn-admin-orange">+ Thêm Danh Mục</button>
+    </form>
+    <div class="table-responsive">
+      <table class="admin-clean-table">
+        <thead>
+          <tr>
+            <th>MÃ</th>
+            <th>TÊN DANH MỤC</th>
+            <th style="text-align: center;">THỨ TỰ</th>
+            <th style="text-align: right;">SỐ MÓN</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% categories.forEach(c => { %>
+            <% const countInCat = items.filter(i => i.category_id === c.id).length; %>
+            <tr>
+              <td>#<%= c.id %></td>
+              <td><strong><%= c.name %></strong></td>
+              <td style="text-align: center;"><span class="status-badge status-confirmed"><%= c.sort_order %></span></td>
+              <td style="text-align: right;"><strong><%= countInCat %> món</strong></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Khai báo các thẻ <form> chuẩn HTML5 bên ngoài bảng để tránh lỗi trình duyệt cắt form trong <tr> -->
+<% items.forEach(it => { %>
+  <form id="form-dish-<%= it.id %>" action="/manager/menu/<%= it.id %>?_csrf=<%= csrfToken %>" method="POST" enctype="multipart/form-data" style="display:none;">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  </form>
+  <form id="form-del-dish-<%= it.id %>" action="/manager/menu/<%= it.id %>/delete" method="POST" style="display:none;" onsubmit="return confirm('Xác nhận xóa hoặc ngưng phục vụ món ăn này?');">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  </form>
+<% }); %>
+
+<!-- Danh sách 24 món ăn hiện có & Chức năng tải ảnh thật cho từng món -->
+<div class="admin-panel-card" style="padding: 0; overflow: hidden;">
+  <div style="padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <h3 class="card-title" style="margin: 0;">📋 Danh Sách Thực Đơn Đồng Bộ Trang Chủ (<%= items.length %> món)</h3>
+      <p style="font-size: 0.84rem; color: var(--text-muted); margin-top: 0.2rem;">
+        Bấm <strong>"📷 Chọn ảnh thật"</strong> ở bất kỳ món nào rồi nhấn <strong>"💾 Lưu"</strong> để thay ảnh minh họa bằng ảnh chụp thật ngay trên Trang chủ.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.6rem; align-items: center;">
+      <input type="text" id="admin-menu-search" class="form-control" placeholder="🔍 Tìm nhanh trong <%= items.length %> món..." style="width: 240px; padding: 0.45rem 0.85rem;">
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="admin-clean-table" id="admin-menu-table">
+      <thead>
+        <tr>
+          <th style="width: 155px;">HÌNH ẢNH MÓN ĂN</th>
+          <th>TÊN MÓN &amp; MÔ TẢ CHI TIẾT</th>
+          <th style="width: 155px;">DANH MỤC</th>
+          <th style="width: 140px;">ĐƠN GIÁ (VNĐ)</th>
+          <th style="width: 135px;">HIỂN THỊ</th>
+          <th style="width: 145px; text-align: right;">THAO TÁC</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% items.forEach(it => { %>
+          <% const isRealPhoto = it.image_path && it.image_path.startsWith('/uploads/'); %>
+          <tr class="admin-dish-row" data-dish-name="<%= it.name.toLowerCase() %>">
+            <td>
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 0.4rem;">
+                <div style="position: relative; width: 108px; height: 76px; border-radius: 8px; overflow: hidden; border: 1.5px solid <%= isRealPhoto ? '#10b981' : '#e2e8f0' %>; background: #f8fafc;">
+                  <img id="preview-img-<%= it.id %>" src="<%= it.image_path %>" alt="<%= it.name %>" style="width: 100%; height: 100%; object-fit: cover;">
+                  <span id="photo-badge-<%= it.id %>" style="position: absolute; bottom: 0; left: 0; right: 0; background: <%= isRealPhoto ? 'rgba(5, 150, 105, 0.88)' : 'rgba(100, 116, 139, 0.85)' %>; color: #fff; font-size: 0.64rem; font-weight: 700; text-align: center; padding: 2px 4px;">
+                    <%= isRealPhoto ? '✅ Ảnh chụp thật' : '🎨 Ảnh SVG mẫu' %>
+                  </span>
+                </div>
+                <label for="file-input-<%= it.id %>" style="display: inline-flex; align-items: center; gap: 0.3rem; background: #fff7ed; color: #ea580c; border: 1px solid #fdba74; border-radius: 6px; padding: 0.25rem 0.6rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.15s;">
+                  📷 Chọn ảnh thật
+                </label>
+                <input
+                  type="file"
+                  name="image"
+                  id="file-input-<%= it.id %>"
+                  form="form-dish-<%= it.id %>"
+                  class="dish-row-file-input"
+                  data-dish-id="<%= it.id %>"
+                  accept="image/png,image/jpeg,image/webp"
+                  style="display: none;"
+                >
+              </div>
+            </td>
+            <td>
+              <input
+                type="text"
+                name="name"
+                form="form-dish-<%= it.id %>"
+                value="<%= it.name %>"
+                class="form-control"
+                style="margin-bottom: 0.4rem; font-weight: 700; padding: 0.42rem 0.65rem;"
+                required
+              >
+              <input
+                type="text"
+                name="description"
+                form="form-dish-<%= it.id %>"
+                value="<%= it.description %>"
+                class="form-control"
+                style="font-size: 0.82rem; padding: 0.36rem 0.65rem; color: var(--text-muted);"
+                placeholder="Mô tả nguyên liệu & hương vị..."
+              >
+            </td>
+            <td>
+              <select name="category_id" form="form-dish-<%= it.id %>" class="form-control" style="padding: 0.42rem 0.5rem; font-weight: 600;">
+                <% categories.forEach(c => { %>
+                  <option value="<%= c.id %>" <%= it.category_id === c.id ? 'selected' : '' %>><%= c.name %></option>
+                <% }); %>
+              </select>
+            </td>
+            <td>
+              <input
+                type="number"
+                name="price"
+                form="form-dish-<%= it.id %>"
+                value="<%= Number(it.price) %>"
+                class="form-control"
+                min="0"
+                step="1000"
+                style="font-weight: 800; color: #ea580c; padding: 0.42rem 0.6rem;"
+                required
+              >
+            </td>
+            <td>
+              <label style="display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.84rem; font-weight: 600;">
+                <input type="checkbox" name="is_available" form="form-dish-<%= it.id %>" <%= it.is_available ? 'checked' : '' %> style="width: 16px; height: 16px;">
+                <span class="status-badge <%= it.is_available ? 'status-available' : 'status-cancelled' %>">
+                  <%= it.is_available ? 'Đang bán' : 'Tạm ẩn' %>
+                </span>
+              </label>
+            </td>
+            <td style="text-align: right; white-space: nowrap;">
+              <button type="submit" form="form-dish-<%= it.id %>" id="save-btn-<%= it.id %>" class="btn btn-primary btn-sm">💾 Lưu</button>
+              <button type="submit" form="form-del-dish-<%= it.id %>" class="btn btn-danger btn-sm" title="Xóa hoặc tạm ngưng món">🗑️</button>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(function() {
+  // 1. Live preview cho Form tạo món ăn mới
+  const nameIn = document.getElementById('new-dish-name');
+  const catIn = document.getElementById('new-dish-cat');
+  const priceIn = document.getElementById('new-dish-price');
+  const fileIn = document.getElementById('new-dish-image-input');
+  const fileNameText = document.getElementById('new-file-name-text');
+
+  const prevImg = document.getElementById('new-dish-preview-img');
+  const prevCat = document.getElementById('new-dish-preview-cat');
+  const prevTitle = document.getElementById('new-dish-preview-title');
+  const prevPrice = document.getElementById('new-dish-preview-price');
+
+  if (nameIn) {
+    nameIn.addEventListener('input', () => {
+      prevTitle.textContent = nameIn.value.trim() || 'Tên món ăn mới';
+    });
+  }
+  if (catIn) {
+    catIn.addEventListener('change', () => {
+      const opt = catIn.options[catIn.selectedIndex];
+      prevCat.textContent = '🍱 ' + (opt ? opt.dataset.catName : 'Danh mục');
+    });
+  }
+  if (priceIn) {
+    priceIn.addEventListener('input', () => {
+      const v = Number(priceIn.value || 0);
+      prevPrice.textContent = v.toLocaleString('vi-VN') + ' ₫';
+    });
+  }
+  if (fileIn) {
+    fileIn.addEventListener('change', () => {
+      const file = fileIn.files && fileIn.files[0];
+      if (!file) return;
+      fileNameText.textContent = '✅ Đã chọn: ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)';
+      fileNameText.style.color = '#059669';
+      fileNameText.style.fontWeight = '700';
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        prevImg.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // 2. Live preview khi chọn ảnh thật cho từng món trong 24 món hiện có
+  document.querySelectorAll('.dish-row-file-input').forEach(input => {
+    input.addEventListener('change', () => {
+      const id = input.dataset.dishId;
+      const file = input.files && input.files[0];
+      if (!file) return;
+
+      const imgEl = document.getElementById('preview-img-' + id);
+      const badgeEl = document.getElementById('photo-badge-' + id);
+      const saveBtn = document.getElementById('save-btn-' + id);
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (imgEl) imgEl.src = e.target.result;
+        if (badgeEl) {
+          badgeEl.textContent = '✨ Ảnh mới (Bấm Lưu)';
+          badgeEl.style.background = 'rgba(234, 88, 12, 0.92)';
+        }
+        if (saveBtn) {
+          saveBtn.textContent = '💾 Lưu ảnh mới!';
+          saveBtn.style.background = 'linear-gradient(135deg, #059669, #10b981)';
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+
+  // 3. Tìm kiếm nhanh món ăn trong bảng quản trị
+  const searchInput = document.getElementById('admin-menu-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.trim().toLowerCase();
+      document.querySelectorAll('.admin-dish-row').forEach(row => {
+        const name = row.dataset.dishName || '';
+        row.style.display = (!q || name.includes(q)) ? '' : 'none';
+      });
+    });
+  }
+})();
+</script>
+
+<%- include('../footer') %>

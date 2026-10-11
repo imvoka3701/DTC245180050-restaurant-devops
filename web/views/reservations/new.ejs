@@ -1,0 +1,30 @@
+<%- include('../layout') %>
+<div class="card" style="max-width: 540px; margin: 2rem auto;">
+  <div class="card-header">
+    <h2 class="card-title">Đặt bàn trước</h2>
+  </div>
+
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="alert alert-error"><%= error %></div>
+  <% } %>
+
+  <form action="/reservations" method="POST">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="form-group">
+      <label class="form-label">Số lượng khách</label>
+      <input type="number" name="party_size" class="form-control" min="1" max="20" value="2" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Thời gian đến dùng bữa</label>
+      <input type="datetime-local" name="reserved_at" class="form-control" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Ghi chú đặc biệt (yêu cầu vị trí, dị ứng...)</label>
+      <textarea name="note" class="form-control" placeholder="Ghi chú thêm nếu có..."></textarea>
+    </div>
+    <div style="margin-top: 1.5rem;">
+      <button type="submit" class="btn btn-primary" style="width: 100%;">Xác nhận đặt bàn</button>
+    </div>
+  </form>
+</div>
+<%- include('../footer') %>

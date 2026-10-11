@@ -1,0 +1,86 @@
+<%- include('../layout') %>
+<div style="margin-bottom: 1.5rem;">
+  <h1>Tạo Đơn Gọi Món Mới</h1>
+</div>
+
+<% if (typeof error !== 'undefined' && error) { %>
+  <div class="alert alert-error"><%= error %></div>
+<% } %>
+
+<form action="/orders" method="POST" id="orderForm">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <input type="hidden" name="items" id="itemsPayload">
+
+  <div class="card">
+    <div class="form-group" style="max-width: 320px;">
+      <label class="form-label">Chọn bàn phục vụ</label>
+      <select name="table_id" class="form-control" required>
+        <option value="">-- Chọn bàn --</option>
+        <% tables.forEach(t => { %>
+          <option value="<%= t.id %>"><%= t.code %> (<%= t.seats %> chỗ) - [<%= t.status %>]</option>
+        <% }); %>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Chọn món ăn vào đơn</h3>
+    </div>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Món ăn</th>
+            <th>Danh mục</th>
+            <th>Đơn giá</th>
+            <th style="width: 140px;">Số lượng</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% menuItems.forEach(item => { %>
+            <tr>
+              <td>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <img src="<%= item.image_path %>" style="width: 44px; height: 36px; object-fit: cover; border-radius: 4px;">
+                  <strong><%= item.name %></strong>
+                </div>
+              </td>
+              <td><%= item.category_name %></td>
+              <td><%= Number(item.price).toLocaleString('vi-VN') %> đ</td>
+              <td>
+                <input type="number" class="form-control item-qty" data-id="<%= item.id %>" min="0" max="99" value="0">
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top: 1.5rem; text-align: right;">
+      <button type="submit" class="btn btn-primary" style="padding: 0.75rem 2rem; font-size: 1rem;">Xác nhận tạo đơn</button>
+    </div>
+  </div>
+</form>
+
+<script>
+document.getElementById('orderForm').addEventListener('submit', function(e) {
+  const items = [];
+  document.querySelectorAll('.item-qty').forEach(input => {
+    const qty = parseInt(input.value, 10);
+    if (qty > 0) {
+      items.push({
+        menu_item_id: parseInt(input.dataset.id, 10),
+        quantity: qty
+      });
+    }
+  });
+
+  if (items.length === 0) {
+    e.preventDefault();
+    alert('Vui lòng chọn số lượng cho ít nhất 1 món ăn!');
+    return false;
+  }
+  document.getElementById('itemsPayload').value = JSON.stringify(items);
+});
+</script>
+<%- include('../footer') %>

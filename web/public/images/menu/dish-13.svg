@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="#fffbeb" rx="12"/>
+  <rect x="14" y="14" width="372" height="272" fill="#ffffff" fill-opacity="0.72" rx="10" stroke="#b45309" stroke-opacity="0.35" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <circle cx="200" cy="108" r="56" fill="#b45309" opacity="0.12"/>
+  <circle cx="200" cy="108" r="42" fill="#b45309" opacity="0.22"/>
+  <text x="200" y="122" font-family="sans-serif" font-size="40" text-anchor="middle">🥩</text>
+  <rect x="110" y="176" width="180" height="24" rx="12" fill="#b45309" opacity="0.14"/>
+  <text x="200" y="192" font-family="sans-serif" font-size="11" font-weight="bold" fill="#b45309" text-anchor="middle">カルビ焼肉 • Karubi Yakiniku</text>
+  <text x="200" y="226" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1c1917" text-anchor="middle">Dẻ Sườn Bò Mỹ Nướng Sốt Tare (Yakiniku)</text>
+  <text x="200" y="250" font-family="sans-serif" font-size="12" font-weight="bold" fill="#b45309" text-anchor="middle">215.000 ₫</text>
+</svg>
