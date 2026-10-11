@@ -37,3 +37,26 @@ Khởi động toàn bộ dịch vụ bằng một lệnh duy nhất:
 ```bash
 docker compose up -d --build
 ```
+
+## Hướng dẫn Tạo User Exporter cho PostgreSQL (Nếu Volume DB đã tồn tại)
+Trong trường hợp cơ sở dữ liệu đã có sẵn từ trước (init.sql không chạy lại), chạy lệnh sau để cấp quyền giám sát cho user `exporter`:
+```bash
+docker exec -i restaurant-db psql -U restaurant_app -d restaurant -c "
+DO \$\$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'exporter') THEN
+    CREATE ROLE exporter WITH LOGIN PASSWORD '${EXPORTER_PASSWORD}';
+    GRANT pg_monitor TO exporter;
+  END IF;
+END
+\$\$;
+"
+```
+
+## Hướng dẫn Giám sát (Monitoring) với Prometheus & Grafana
+- **Grafana Dashboard**: Truy cập https://<VM_IP>/grafana/ (Bỏ qua cảnh báo SSL tự ký).
+- **Xem Prometheus Targets an toàn qua SSH Tunnel** (do cổng Prometheus 9090 không mở công khai ra ngoài):
+  `ash
+  ssh -L 9090:localhost:9090 ductrantest@192.168.1.15
+  `
+  Sau khi thiết lập tunnel, mở trình duyệt trên máy thật và truy cập: http://localhost:9090/targets

@@ -158,3 +158,13 @@ SELECT setval('categories_id_seq', (SELECT MAX(id) FROM categories));
 SELECT setval('menu_items_id_seq', (SELECT MAX(id) FROM menu_items));
 SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
 SELECT setval('dining_tables_id_seq', (SELECT MAX(id) FROM dining_tables));
+
+-- TẠO USER EXPORTER CHO HỆ THỐNG GIÁM SÁT PROMETHEUS
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'exporter') THEN
+    CREATE ROLE exporter WITH LOGIN PASSWORD 'change_this_strong_exporter_password';
+    GRANT pg_monitor TO exporter;
+  END IF;
+END
+$$;
