@@ -7,7 +7,10 @@ const routes = require('./routes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Trust proxy để lấy đúng IP từ X-Forwarded-For
+// Hardening: Ẩn hoàn toàn header X-Powered-By
+app.disable('x-powered-by');
+
+// Trust proxy để lấy đúng IP từ X-Forwarded-For sau Nginx
 app.set('trust proxy', 1);
 
 // Cấu hình View Engine EJS
@@ -22,7 +25,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(express.json({ limit: '1mb' }));
 
-// Cấu hình Session bảo mật
+// Cấu hình Session bảo mật: httpOnly, SameSite=Strict, Secure khi qua HTTPS
 app.use(session({
   name: 'restaurant.sid',
   secret: process.env.SESSION_SECRET || 'default_session_secret_restaurant_2026',
@@ -31,7 +34,7 @@ app.use(session({
   cookie: {
     httpOnly: true,
     sameSite: 'strict',
-    secure: false, // sẽ kích hoạt khi sau Nginx HTTPS
+    secure: 'auto',
     maxAge: 24 * 60 * 60 * 1000 // 24 giờ
   }
 }));
@@ -55,15 +58,21 @@ app.use((req, res) => {
   });
 });
 
-// Global Error Handler
+// 500 Error Handler
 app.use((err, req, res, next) => {
-  console.error('Unhandled server error:', err);
+  console.error('[SERVER_ERROR]', err);
+  if (err.code === 'EBADCSRFTOKEN') {
+    return res.status(403).render('error', {
+      title: '403 Lỗi Xác Thực',
+      message: 'CSRF token không hợp lệ hoặc phiên làm việc đã hết hạn. Vui lòng tải lại trang.'
+    });
+  }
   res.status(500).render('error', {
-    title: '500 Lỗi máy chủ',
-    message: 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.'
+    title: '500 Lỗi Hệ Thống',
+    message: 'Đã xảy ra lỗi nội bộ máy chủ. Vui lòng thử lại sau.'
   });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[RESTAURANT APP] Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+  console.log(`[RESTAURANT_APP] Server running on port ${PORT}`);
 });

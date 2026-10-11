@@ -9,7 +9,10 @@ RUN npm install --omit=dev --no-audit --no-fund
 
 COPY . .
 
-RUN mkdir -p /app/public/uploads
+# Tạo thư mục uploads và phân quyền ghi cho user không đặc quyền node (uid 1000)
+RUN mkdir -p /app/public/uploads && chown -R node:node /app
+
+USER node
 
 EXPOSE 3000
 

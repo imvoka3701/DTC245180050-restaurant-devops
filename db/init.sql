@@ -168,3 +168,36 @@ BEGIN
   END IF;
 END
 $$;
+
+-- ========================================================
+-- HARDENING LEAST PRIVILEGE: Phân quyền tối thiểu cho CSDL
+-- ========================================================
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'db_admin') THEN
+    CREATE ROLE db_admin WITH SUPERUSER LOGIN PASSWORD 'AdminDB_Restaurant_2026_Secure!';
+  END IF;
+END
+$$;
+
+-- Chuyển quyền sở hữu tất cả bảng sang db_admin
+DO $$
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+        EXECUTE 'ALTER TABLE public.' || quote_ident(r.tablename) || ' OWNER TO db_admin;';
+    END LOOP;
+    FOR r IN (SELECT sequence_name FROM information_schema.sequences WHERE sequence_schema = 'public') LOOP
+        EXECUTE 'ALTER SEQUENCE public.' || quote_ident(r.sequence_name) || ' OWNER TO db_admin;';
+    END LOOP;
+END
+$$;
+
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+REVOKE CREATE ON SCHEMA public FROM restaurant_app;
+GRANT USAGE ON SCHEMA public TO restaurant_app;
+
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM restaurant_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO restaurant_app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO restaurant_app;

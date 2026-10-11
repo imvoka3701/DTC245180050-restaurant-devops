@@ -1,0 +1,9 @@
+{
+  "name": "alert-sink",
+  "version": "1.0.0",
+  "description": "Lightweight webhook receiver for Grafana Alerting",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

@@ -1,0 +1,66 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: alert-sink-webhook
+    receivers:
+      - uid: alert-sink-receiver
+        type: webhook
+        disableResolveMessage: false
+        settings:
+          url: http://alert-sink:8080/webhook
+          httpMethod: POST
+
+policies:
+  - orgId: 1
+    receiver: alert-sink-webhook
+    group_by: ['alertname', 'grafana_folder']
+    group_wait: 5s
+    group_interval: 10s
+    repeat_interval: 1h
+
+groups:
+  - orgId: 1
+    name: restaurant-security-rules
+    folder: Restaurant Monitoring
+    interval: 10s
+    rules:
+      - uid: restaurant-bruteforce
+        title: Restaurant - Brute force login
+        condition: C
+        for: 0s
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: loki-datasource
+            model:
+              editorMode: code
+              expr: sum(count_over_time({job="webapp"} |= "LOGIN_FAILED" [1m]))
+              queryType: range
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              reducer: last
+              expression: A
+              refId: B
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    params: [5]
+                    type: gt
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Cảnh báo tấn công dò mật khẩu (Brute force)"
+          description: "Phát hiện hơn 5 lượt đăng nhập thất bại (LOGIN_FAILED) trong vòng 1 phút từ webapp. Dùng LogQL để truy vết IP và tài khoản."
+        labels:
+          severity: critical
